@@ -2141,3 +2141,93 @@ prepareRoadLegs = function(data, mission) {
 console.log(
     "TAG KAC! - Verified routes enabled."
 );
+// ==========================================
+// STAGE 15 - POLICE IMAGE MODAL
+// ==========================================
+
+function ensureModalImage() {
+
+    let img = document.getElementById("modal-image");
+
+    if (!img) {
+        img = document.createElement("img");
+        img.id = "modal-image";
+        img.alt = "Polis yakalanma görseli";
+        img.hidden = true;
+
+        $("modal-message").before(img);
+    }
+
+    return img;
+}
+
+const originalModalStage15 = modal;
+
+modal = function(title, message, actions) {
+
+    const img = ensureModalImage();
+    img.hidden = true;
+
+    originalModalStage15(title, message, actions);
+};
+
+policeEncounter = function(route) {
+
+    const actions = [];
+
+    if (balance >= 500) {
+
+        actions.push([
+            "500 TL ÖDE VE DEVAM ET",
+            () => {
+
+                if (!active || timer.remaining() === 0) {
+                    finishGame(false, "Süren doldu!");
+                    return;
+                }
+
+                balance -= 500;
+                penalties++;
+
+                dashboard();
+
+                animateRoute(
+                    route,
+                    0.55,
+                    1,
+                    () => completeStep(route)
+                );
+            }
+        ]);
+    }
+
+    actions.push([
+        "YENİDEN BAŞLAT",
+        () => prepareMission(true)
+    ]);
+
+    modal(
+        "🚔 POLİSE YAKALANDIN!",
+        balance >= 500
+            ? "Kurgusal oyun cezası: 500 TL. Süre devam ediyor."
+            : "Sanal bakiyen yetersiz. Oyunu yeniden başlatmalısın.",
+        actions
+    );
+
+    const img = ensureModalImage();
+    img.src = "./caught-police.jpg";
+    img.hidden = false;
+
+    img.onerror = function() {
+        this.hidden = true;
+        console.warn("Polis görseli yüklenemedi.");
+    };
+
+    if (balance < 500) {
+        timer.stop();
+        active = false;
+        controls();
+    }
+};
+
+console.log("TAG KAC! Stage 15 - Police image modal enabled.");
