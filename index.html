@@ -1,0 +1,248 @@
+ <!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>TAG KAÇ! | Ankara Edition</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
+</head>
+
+<body>
+
+    <!-- MAIN MENU -->
+
+    <section id="main-menu" class="screen active">
+
+        <div class="menu-container">
+
+            <div class="edition">
+                ANKARA EDITION
+            </div>
+
+            <div class="game-logo">
+                TAG <span>KAÇ!</span>
+            </div>
+
+            <div class="hero-icon">
+                🚗 💨 🚕
+            </div>
+
+            <h1>Şehir senin. Karar senin.</h1>
+
+            <p class="subtitle">
+                Rotanı seç, zamana karşı yarış
+                ve müşterini ulaştır.
+            </p>
+
+            <div class="menu-buttons">
+
+                <button id="start-btn" class="primary-btn">
+                    ▶ OYUNA BAŞLA
+                </button>
+
+                <button id="help-btn" class="secondary-btn">
+                    🎮 NASIL OYNANIR?
+                </button>
+
+                <button id="record-btn" class="secondary-btn">
+                    🏆 EN YÜKSEK SKOR
+                </button>
+
+                <button id="sound-btn" class="secondary-btn">
+                    🔊 SES: AÇIK
+                </button>
+
+            </div>
+
+            <footer>
+                GMT 458 — WEB GIS PROJECT
+                <br>
+                HACETTEPE UNIVERSITY | 2026
+                <p>Bağımsız ve kurgusal öğrenci projesi.</p>
+            </footer>
+
+        </div>
+
+    </section>
+
+
+    <!-- PASSENGER REQUEST -->
+
+    <section id="request-screen" class="screen" hidden>
+
+        <div class="request-card">
+
+            <h2>🔔 Yeni Yolculuk Talebi</h2>
+
+            <p id="customer-name">Müşteri bekleniyor...</p>
+
+            <div class="trip-details">
+
+                <p>
+                    🟢 Başlangıç:
+                    <span id="pickup-location">-</span>
+                </p>
+
+                <p>
+                    🔴 Varış:
+                    <span id="destination-location">-</span>
+                </p>
+
+                <p>
+                    💰 Yolculuk ücreti:
+                    <span id="trip-reward">0 TL</span>
+                </p>
+
+            </div>
+
+            <button id="accept-btn" class="primary-btn">
+                TALEBİ KABUL ET
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- GAME SCREEN -->
+
+    <section id="game-screen" class="screen" hidden>
+
+        <header class="game-header">
+
+            <h2>TAG KAÇ!</h2>
+
+            <div class="dashboard">
+
+                <div class="stat">
+                    <small>KALAN SÜRE</small>
+                    <strong id="timer">02:00</strong>
+                </div>
+
+                <div class="stat">
+                    <small>BAKİYE</small>
+                    <strong id="balance">1000 TL</strong>
+                </div>
+
+                <div class="stat">
+                    <small>SEVİYE</small>
+                    <strong id="level">1/3</strong>
+                </div>
+
+                <div class="stat">
+                    <small>İPUCU</small>
+                    <strong id="hint-count">3</strong>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- OPENLAYERS MAP -->
+
+        <main id="map" aria-label="Oyun haritası"></main>
+
+
+        <!-- TRIP PROGRESS -->
+
+        <div class="progress-container">
+
+            <p>Yolculuk İlerlemesi</p>
+
+            <progress
+                id="trip-progress"
+                value="0"
+                max="100">
+            </progress>
+
+            <span id="progress-text">%0</span>
+
+        </div>
+
+
+        <!-- ROUTE SELECTION -->
+
+        <section class="route-selection">
+
+            <h3>Güzergâhını Seç</h3>
+
+            <div class="route-buttons">
+
+                <button class="route-btn" data-route="0">
+                    ROTA 1
+                    <span id="distance-1">- km</span>
+                </button>
+
+                <button class="route-btn" data-route="1">
+                    ROTA 2
+                    <span id="distance-2">- km</span>
+                </button>
+
+                <button class="route-btn" data-route="2">
+                    ROTA 3
+                    <span id="distance-3">- km</span>
+                </button>
+
+            </div>
+
+            <button id="hint-btn" class="hint-btn">
+                💡 İPUCU KULLAN
+            </button>
+
+            <p id="customer-message" aria-live="polite">
+                Müşteri: Hadi başlayalım!
+            </p>
+
+        </section>
+
+    </section>
+
+
+    <!-- GAME RESULT -->
+
+    <section id="result-screen" class="screen" hidden>
+
+        <div class="result-card">
+
+            <h1 id="result-title">Oyun Sonu</h1>
+
+            <p id="result-message"></p>
+
+            <h2 id="final-score">0 TL</h2>
+
+            <p id="high-score">En yüksek skor: 0 TL</p>
+
+            <canvas id="statistics-chart"></canvas>
+
+            <button id="restart-btn" class="primary-btn">
+                🔄 TEKRAR OYNA
+            </button>
+
+            <button id="menu-btn" class="secondary-btn">
+                ANA MENÜ
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- NOTIFICATION WINDOW -->
+
+    <dialog id="game-modal">
+
+        <h2 id="modal-title"></h2>
+
+        <p id="modal-message"></p>
+
+        <div id="modal-actions"></div>
+
+    </dialog>
+
+</body>
+</html>
