@@ -1107,9 +1107,7 @@ async function loadRoadGraph() {
 way["highway"~"^(primary|secondary|tertiary|unclassified|residential|living_street|primary_link|secondary_link|tertiary_link|trunk|trunk_link|service)$"](39.910,32.810,39.952,32.875);
 out geom;`;
 
-    const url =
-        "https://overpass-api.de/api/interpreter?data="
-        + encodeURIComponent(query);
+    const url = "./roads.json";
 
     const response = await fetch(url, {
         signal: AbortSignal.timeout(35000)
