@@ -1,206 +1,503 @@
-# 🚗 TAG KAÇ!
+# 🚗 TAG KAÇ! — Ankara Edition
 
-### GMT 458 – Web GIS | Assignment 2: GeoGame
+## GMT 458 – Web GIS
+### Assignment 2: GeoGame
+### Hacettepe University – Geomatics Engineering
 
-> Choose your route, beat the clock and complete the ride!
+**Developer:** Adem Eren Kuvel
+
+**Live Game:**
+https://erenkuvell.github.io/tag-kac/
+
+**GitHub Repository:**
+https://github.com/erenkuvell/tag-kac
+
+---
 
 ## 1. Project Description
 
-TAG KAÇ! is an interactive, map-based urban strategy game.
-The player acts as a driver who accepts passenger requests
-and attempts to complete trips within a limited time.
+TAG KAÇ! is an interactive, browser-based
+geographic strategy game set in Ankara, Türkiye.
 
-The player must choose between three alternative routes
-at each decision point while dealing with fictional
-in-game obstacles.
+The player acts as a driver who accepts passenger
+requests and attempts to complete journeys within
+a limited time.
 
-The game combines entertainment with geographic
-information systems and spatial decision-making.
+The player selects between three alternative routes
+and encounters fictional obstacles during the journey.
 
-## 2. Functional Requirements
+The game combines geographic information systems,
+spatial decision-making, route optimization,
+time management and entertainment.
 
-- Interactive geographic map
-- Passenger request and acceptance system
-- Three alternative routes at each decision point
+## 2. Project Objectives
+
+- Develop an interactive Web GIS application.
+- Use real geographic road data.
+- Implement coordinate transformations.
+- Explore shortest-path algorithms.
+- Develop alternative route optimization.
+- Implement interactive JavaScript event handlers.
+- Manage game states and temporal components.
+- Publish a web application using GitHub Pages.
+
+## 3. Functional Requirements
+
+- Interactive Ankara map
+- Multiple passenger requests
+- Passenger selection system
+- Three alternative routes per checkpoint
+- Real road geometries
 - Animated vehicle movement
-- Randomly generated fictional obstacles
-- Taxi and taxi station obstacles
-- Simulated traffic police encounters
+- Random fictional taxi obstacles
+- Fictional traffic police encounters
 - Virtual penalty payment system
 - Limited hints
 - Countdown timer
-- Multiple difficulty levels
+- Three difficulty levels
 - Passenger satisfaction system
-- Score and high-score tracking
-- Game restart functionality
-- End-game statistics
+- Balance and reward system
+- High-score storage
+- Custom encounter images
+- Sound effects
+- Dynamic driving background music
+- Restart and main menu functionality
 
-## 3. Gameplay
+## 4. Gameplay
 
-1. The player receives a passenger request.
-2. The player accepts the request.
-3. The countdown timer begins.
-4. Three alternative routes appear on the map.
-5. The player selects a route.
-6. A safe route allows the journey to continue.
-7. A taxi obstacle ends the game.
-8. A simulated police encounter requires a virtual
-   penalty payment or a game restart.
-9. The player reaches the destination and earns money.
-10. The next mission begins.
+1. The player starts the game.
+2. Two passenger requests are displayed.
+3. The player selects a passenger.
+4. The passenger request is accepted.
+5. The interactive map is displayed.
+6. The countdown timer starts.
+7. Three alternative routes are presented.
+8. The player selects a route.
+9. The vehicle moves along the selected route.
+10. Fictional obstacles affect the journey.
+11. The passenger reaches the destination.
+12. The player receives a virtual reward.
+13. The next mission begins.
 
-## 4. Difficulty Levels
+The game ends when the player completes all three
+missions, encounters a taxi obstacle or runs out
+of time.
+
+## 5. Difficulty Levels
 
 | Feature | Level 1 | Level 2 | Level 3 |
 |---|---|---|---|
 | Difficulty | Easy | Medium | Hard |
-| Decision Points | 4 | 5 | 6 |
-| Time Limit | 120 sec | 150 sec | 180 sec |
-| Reward | 350 TL | 650 TL | 1000 TL |
-| Hints | 3 | 3 | 2 |
+| Origin | Kızılay | Bahçelievler | Anıtkabir Area |
+| Destination | Bahçelievler | Anıtkabir Area | Ulus |
+| Checkpoints | 3 | 3 | 4 |
+| Time Limit | 120/150 sec | 150 sec | 180 sec |
+| Reward | 350/300 TL | 650 TL | 1000 TL |
+| Hints | 3 | 2 | 2 |
 | Police Obstacles | No | Yes | Yes |
 
 Total missions: 3
 
-Total decision points: 15
+Total decision stages: 10
 
-Total route alternatives: 45
+Total route alternatives: 30
 
-Target gameplay duration: 5–8 minutes.
+Number of lives: 1 per game session.
 
-The game has one life per session.
+## 6. Passenger Selection
 
-## 5. Scoring System
+At the beginning of the game, two passenger
+requests are available.
+
+### Passenger 1 – Ahmet
+
+- Reward: 350 TL
+- Time limit: 120 seconds
+- Fictional rating: 4.9
+
+### Passenger 2 – Elif
+
+- Reward: 300 TL
+- Time limit: 150 seconds
+- Fictional rating: 4.8
+
+The player must choose between a higher reward
+and a more flexible time limit.
+
+## 7. Scoring System
 
 - Initial virtual balance: 1000 TL
-- Simulated penalty: 500 TL
-- Maximum mission rewards: 2000 TL
+- Simulated traffic penalty: 500 TL
 - Maximum final balance: 3000 TL
+- Passenger satisfaction: 1–5 stars
 
-The player's final balance determines the score.
-The highest score will be stored using LocalStorage.
+The final balance depends on the selected passenger,
+completed missions and simulated penalties.
 
-All payments are fictional and have no monetary value.
+The highest successful game score is stored
+in the browser using LocalStorage.
 
-## 6. Temporal Component
+All financial transactions are fictional.
+
+## 8. Temporal Component
 
 Each mission has a countdown timer.
 
-The player must reach the destination before the
-time limit expires. Route selection and travel time
-will affect the remaining time.
+The countdown starts when a passenger request
+is accepted.
 
-If the timer reaches zero, the game ends.
+The timer continues during route selection,
+vehicle movement and simulated police encounters
+when payment is possible.
 
-## 7. Geographic Information Systems
+The remaining time also affects passenger
+satisfaction.
 
-The project will use:
+If the countdown reaches zero, the game ends.
 
-- Geographic coordinates (latitude and longitude)
+## 9. Geographic Information Systems
+
+The application uses real geographic information
+from OpenStreetMap.
+
+The GIS components include:
+
+- Geographic coordinates
 - WGS84 (EPSG:4326)
 - Web Mercator (EPSG:3857)
 - Coordinate transformations
-- Point and LineString geometries
+- Point geometries
+- LineString geometries
 - Vector layers
-- Route distance calculations
-- GeoJSON data
-- Spatial relationships
+- Raster basemap tiles
 - Road network topology
+- Spatial relationships
+- Geographic distance calculations
+- Interactive coordinate display
+- Map scale control
 
-## 8. Planned Technologies
+The OpenLayers library provides the interactive
+map environment.
+
+## 10. Road Network and Route Optimization
+
+Road network data was obtained from OpenStreetMap
+using the Overpass API.
+
+The original dataset contains road identifiers,
+node identifiers, geographic coordinates and
+road attributes.
+
+The road network was represented as a weighted
+graph consisting of nodes and edges.
+
+The A* shortest-path algorithm was explored and
+implemented during development.
+
+Alternative paths were generated by modifying
+edge costs and avoiding selected road segments.
+
+The route selection process was improved by
+considering:
+
+- Route length
+- Shared road segments
+- Route diversity
+- Road connectivity
+- One-way road information
+- Checkpoint locations
+
+The final route geometries were prepared in advance
+and stored in game-routes.json.
+
+This approach reduces dependence on external
+routing services during gameplay.
+
+The application loads these predefined geographic
+routes and displays them using OpenLayers.
+
+The road network model is intended for educational
+gameplay, not real-world vehicle navigation.
+
+## 11. Coordinate Transformations
+
+OpenStreetMap coordinates are represented
+using longitude and latitude.
+
+OpenLayers transforms geographic coordinates
+from EPSG:4326 to EPSG:3857 for visualization.
+
+The following functions are used:
+
+- ol.proj.fromLonLat()
+- ol.proj.toLonLat()
+
+Geographic route lengths are calculated using:
+
+- ol.sphere.getLength()
+
+This enables distance-based route comparisons.
+
+## 12. Event Handlers
+
+### Event Handler 1 – Passenger Acceptance
+
+The click event on the passenger acceptance
+button starts the selected mission.
+
+It loads the geographic route data, displays
+the map and starts the countdown timer.
+
+### Event Handler 2 – Route Selection
+
+Click events are assigned to the three route
+buttons.
+
+The selected route index is passed to the
+route selection function.
+
+The vehicle is animated along the corresponding
+route geometry.
+
+### Event Handler 3 – Hint Button
+
+The click event on the hint button reveals
+fictional obstacle markers.
+
+The remaining number of hints is updated.
+
+### Additional Event Handlers
+
+- Map singleclick event
+- Passenger selection
+- Penalty payment
+- Sound control
+- Game restart
+- Main menu navigation
+
+## 13. JavaScript Closures
+
+JavaScript closures are used in the countdown
+timer implementation.
+
+The createTimer() function maintains private
+variables such as the timer interval and deadline.
+
+Its returned functions can access these variables
+after the outer function has finished execution.
+
+This structure improves state management and
+prevents unnecessary global variable usage.
+
+Closures are also used in event callbacks,
+passenger selection and background music control.
+
+## 14. DOM Manipulation
+
+The Document Object Model is used to dynamically
+update the game interface.
+
+Examples include:
+
+- document.getElementById()
+- document.querySelector()
+- document.querySelectorAll()
+- document.createElement()
+- textContent
+- replaceChildren()
+- appendChild()
+- classList.toggle()
+- hidden
+- disabled
+
+These methods update the timer, balance,
+passenger requests, progress bar, images,
+notifications and game results.
+
+## 15. Vehicle Animation
+
+The vehicle moves along the selected
+LineString geometry.
+
+The requestAnimationFrame() method is used
+to provide animated movement.
+
+Intermediate positions are obtained from
+the route geometry during the animation.
+
+## 16. Sound and Background Music
+
+The Web Audio API is used to generate
+game sound effects.
+
+The application also uses the HTML Audio API
+to play background music during vehicle movement.
+
+The background music pauses when the vehicle
+stops, an obstacle is encountered or the game ends.
+
+The sound control button allows the player
+to enable or disable audio.
+
+## 17. Frontend Layout
+
+### Main Menu
+
+    +-----------------------------+
+    |         TAG KAC!            |
+    |       ANKARA EDITION        |
+    |                             |
+    |        START GAME           |
+    |        HOW TO PLAY          |
+    |        HIGH SCORE           |
+    |        SOUND ON/OFF         |
+    +-----------------------------+
+
+### Gameplay Screen
+
+    +-----------------------------+
+    |          TAG KAC!           |
+    | TIMER BALANCE LEVEL HINTS   |
+    +-----------------------------+
+    |                             |
+    |       INTERACTIVE MAP       |
+    |                             |
+    |  ROUTES - CAR - CHECKPOINTS |
+    |                             |
+    +-----------------------------+
+    |       JOURNEY PROGRESS      |
+    +-----------------------------+
+    | ROUTE 1 | ROUTE 2 | ROUTE 3 |
+    |          USE HINT           |
+    |       CUSTOMER MESSAGE      |
+    +-----------------------------+
+
+## 18. Technologies and Libraries
 
 - HTML5
 - CSS3
 - JavaScript
 - OpenLayers
 - OpenStreetMap
-- Chart.js
-- GeoJSON
+- Overpass API
+- JSON
+- Web Audio API
+- HTML Audio API
 - LocalStorage
-- Git and GitHub
+- Git
+- GitHub
 - GitHub Pages
 
-## 9. Proposed Frontend Layout
+## 19. Project File Structure
 
-```text
-+------------------------------------------+
-|                TAG KAC!                  |
-+------------------------------------------+
-| TIME       BALANCE       LEVEL     HINTS  |
-+------------------------------------------+
-|                                          |
-|             INTERACTIVE MAP              |
-|                                          |
-|       ROUTES - VEHICLE - DESTINATION      |
-|                                          |
-+------------------------------------------+
-|             JOURNEY PROGRESS              |
-+------------------------------------------+
-|   ROUTE 1     ROUTE 2       ROUTE 3       |
-+------------------------------------------+
-|      USE HINT       CUSTOMER MESSAGE     |
-+------------------------------------------+
-```
+    tag-kac/
+    |-- index.html
+    |-- style.css
+    |-- script.js
+    |-- roads.json
+    |-- game-routes.json
+    |-- caught-taxi.png
+    |-- caught-police.jpg
+    |-- driving-music.mp3
+    |-- README.md
 
-A detailed visual design will be added during development.
+## 20. Open Geographic Data
 
-## 10. Open Geographic Data
+The geographic data used in this project
+was obtained from OpenStreetMap.
 
-OpenStreetMap will be used as the geographic
-basemap.
+Data copyright:
+© OpenStreetMap contributors
 
-All game obstacles will be fictional and randomly
-generated. The game will not use real-time police
-locations or actual taxi station locations.
+License:
+Open Database License (ODbL)
 
-## 11. JavaScript Implementation
+https://www.openstreetmap.org/copyright
 
-### Planned Event Handlers
+Road data extraction:
+https://overpass-turbo.eu/
 
-- Passenger request acceptance
-- Map and route selection
-- Hint button interaction
-- Penalty payment
-- Game restart
+All in-game obstacles are fictional and randomly
+assigned to game routes.
 
-### Closures
+No real-time police or taxi locations are used.
 
-JavaScript closures are planned for countdown
-timer and game session management.
+## 21. Artificial Intelligence Usage
 
-### DOM Manipulation
+ChatGPT was used as an AI-assisted learning
+and development tool throughout the project.
 
-The DOM will be used to update the timer, balance,
-mission progress, notifications and game statistics.
+The AI-assisted development process included:
 
-## 12. Artificial Intelligence Usage
+- Game concept development
+- HTML and CSS design
+- JavaScript implementation
+- OpenLayers integration
+- Coordinate transformations
+- Road network analysis
+- Shortest-path algorithm exploration
+- Alternative route optimization
+- Event handlers
+- JavaScript closures
+- DOM manipulation
+- Debugging
+- Sound integration
+- GitHub Pages deployment
 
-ChatGPT has been used for initial brainstorming
-and project planning.
+Through this process, I learned how geographic
+information can be integrated into interactive
+browser-based applications.
 
-Further explanations of AI-assisted learning and
-the conversation URL will be added during development.
+I also learned how to identify and resolve
+JavaScript errors, manage game states, process
+geographic data and publish a Web GIS application.
 
-## 13. Disclaimer
+AI interaction URL:
 
-This is an independent educational project developed
-for GMT 458 Web GIS.
+[INSERT CHATGPT SHARED CONVERSATION URL HERE]
 
-All gameplay scenarios, obstacles and financial
-transactions are fictional.
+## 22. Git Version Control
 
-The project is not affiliated with any transportation
+GitHub was used throughout the development
+process.
+
+Separate commits were created for major
+development stages, feature additions,
+bug fixes and geographic data improvements.
+
+The repository commit history documents
+the development process.
+
+## 23. Disclaimer
+
+TAG KAÇ! is an independent educational
+student project.
+
+All game scenarios, passengers, obstacles,
+penalties and financial transactions are fictional.
+
+The application is not intended for real-world
+navigation or avoidance of law enforcement.
+
+The project is not affiliated with any transport
 company or public authority.
 
-## 14. Development Status
+Third-party media remain the property of their
+respective rights holders.
 
-- [x] Game concept
-- [x] GitHub repository
-- [ ] Frontend design
-- [ ] Interactive map
-- [ ] Route system
-- [ ] Game mechanics
-- [ ] Scoring and timer
-- [ ] Statistics
-- [ ] Testing
-- [ ] GitHub Pages deployment
+## 24. Conclusion
+
+TAG KAÇ! demonstrates the integration of
+Web GIS technologies with interactive game
+development.
+
+The project combines real geographic data,
+spatial analysis, route optimization,
+JavaScript programming and user interaction
+in a single browser-based application.
+
+---
+
+GMT 458 – Web GIS | 2026
+Hacettepe University
+Department of Geomatics Engineering
