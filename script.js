@@ -1936,7 +1936,7 @@ finishGame = function(success, message) {
         const img = document.createElement("img");
 
         img.id = "result-image";
-        img.src = "assets/caught-taxi.png";
+        img.src = "./caught-taxi.png";
         img.alt = "Yakalanma görseli";
         img.hidden = true;
 
