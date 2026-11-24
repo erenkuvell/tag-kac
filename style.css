@@ -1,0 +1,566 @@
+/* =========================================
+   TAG KAC! - GMT 458 WEB GIS PROJECT
+   Main Stylesheet
+========================================= */
+
+:root {
+    --primary: #a3ff12;
+    --background: #101512;
+    --panel: #202923;
+    --text: #ffffff;
+    --muted: #a1afa5;
+    --yellow: #ffd43b;
+    --danger: #ff4545;
+    --blue: #419cff;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.12);
+}
+
+button:active:not(:disabled) {
+    transform: scale(0.97);
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+button:focus-visible {
+    outline: 3px solid var(--blue);
+    outline-offset: 4px;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+.screen {
+    min-height: 100vh;
+}
+
+/* MAIN MENU */
+
+#main-menu {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+    background:
+        radial-gradient(
+            ellipse at top,
+            #293f20 0%,
+            #101512 65%
+        );
+}
+
+.menu-container {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+}
+
+.edition {
+    display: inline-block;
+    color: var(--primary);
+    border: 1px solid #597b35;
+    border-radius: 30px;
+    padding: 8px 18px;
+    letter-spacing: 4px;
+    font-size: 12px;
+    margin-bottom: 25px;
+}
+
+.game-logo {
+    font-size: clamp(55px, 10vw, 95px);
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -5px;
+    color: var(--primary);
+    text-shadow: 0 0 30px #a3ff1233;
+}
+
+.game-logo span {
+    color: white;
+}
+
+.hero-icon {
+    font-size: 65px;
+    margin: 30px 0;
+    animation: floating 2.5s ease-in-out infinite;
+}
+
+@keyframes floating {
+    0%, 100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+h1 {
+    font-size: 28px;
+    margin-bottom: 12px;
+}
+
+.subtitle {
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 35px;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+}
+
+/* BUTTONS */
+
+.primary-btn,
+.secondary-btn {
+    width: 100%;
+    border-radius: 12px;
+    padding: 17px 20px;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.primary-btn {
+    background: var(--primary);
+    color: #101512;
+    border: none;
+    box-shadow: 0 5px 20px #a3ff1222;
+}
+
+.secondary-btn {
+    background: var(--panel);
+    color: white;
+    border: 1px solid #405044;
+}
+
+footer {
+    margin-top: 40px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.9;
+    letter-spacing: 1px;
+}
+
+footer p {
+    margin-top: 10px;
+    letter-spacing: 0;
+}
+
+/* PASSENGER REQUEST */
+
+#request-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 25px;
+    background:
+        radial-gradient(
+            ellipse at top,
+            #263d20,
+            #101512 70%
+        );
+}
+
+.request-card,
+.result-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--panel);
+    border: 1px solid #405044;
+    border-radius: 22px;
+    padding: 30px;
+    box-shadow: 0 15px 50px #0005;
+}
+
+.request-card h2 {
+    color: var(--primary);
+    margin-bottom: 20px;
+}
+
+#customer-name {
+    color: var(--muted);
+    font-size: 17px;
+}
+
+.trip-details {
+    background: var(--background);
+    padding: 20px;
+    border-radius: 12px;
+    margin: 25px 0;
+}
+
+.trip-details p {
+    margin: 15px 0;
+    line-height: 1.6;
+}
+
+.trip-details span {
+    font-weight: bold;
+    color: var(--primary);
+}
+
+/* GAME HEADER */
+
+.game-header {
+    background: var(--panel);
+    padding: 18px;
+    border-bottom: 1px solid #405044;
+}
+
+.game-header h2 {
+    color: var(--primary);
+    text-align: center;
+    font-style: italic;
+    font-weight: 900;
+    margin-bottom: 15px;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    max-width: 1000px;
+    margin: auto;
+}
+
+.stat {
+    background: var(--background);
+    border: 1px solid #35443a;
+    padding: 15px 8px;
+    text-align: center;
+    border-radius: 12px;
+}
+
+.stat small {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.stat strong {
+    color: var(--primary);
+    font-size: 23px;
+}
+
+#timer {
+    font-variant-numeric: tabular-nums;
+}
+
+#timer.danger {
+    color: var(--danger);
+    animation: warning 0.7s infinite;
+}
+
+@keyframes warning {
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* INTERACTIVE MAP */
+
+#map {
+    width: 100%;
+    height: 52vh;
+    min-height: 320px;
+    background: #25332b;
+    position: relative;
+    border-bottom: 2px solid #405044;
+}
+
+/* JOURNEY PROGRESS */
+
+.progress-container {
+    padding: 15px 20px;
+    background: var(--panel);
+}
+
+.progress-container p {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+#trip-progress {
+    width: 88%;
+    height: 12px;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+    appearance: none;
+}
+
+progress::-webkit-progress-bar {
+    background: #39483e;
+    border-radius: 10px;
+}
+
+progress::-webkit-progress-value {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+progress::-moz-progress-bar {
+    background: var(--primary);
+}
+
+#progress-text {
+    color: var(--primary);
+    font-size: 13px;
+    font-weight: bold;
+    margin-left: 8px;
+}
+
+/* ROUTE SELECTION */
+
+.route-selection {
+    max-width: 1000px;
+    margin: auto;
+    padding: 20px;
+}
+
+.route-selection h3 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.route-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.route-btn {
+    border: 2px solid var(--route-color);
+    background: var(--panel);
+    color: white;
+    padding: 16px 8px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.route-btn:nth-child(1) {
+    --route-color: #419cff;
+}
+
+.route-btn:nth-child(2) {
+    --route-color: #b48bff;
+}
+
+.route-btn:nth-child(3) {
+    --route-color: #a3ff12;
+}
+
+.route-btn span {
+    display: block;
+    color: var(--route-color);
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+.route-btn:hover:not(:disabled) {
+    background: var(--route-color);
+    color: #101512;
+}
+
+.route-btn:hover:not(:disabled) span {
+    color: #101512;
+}
+
+.hint-btn {
+    display: block;
+    width: 100%;
+    margin-top: 15px;
+    padding: 14px;
+    color: var(--yellow);
+    border: 1px solid var(--yellow);
+    background: #ffd43b12;
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+#customer-message {
+    background: var(--panel);
+    color: var(--muted);
+    margin-top: 15px;
+    padding: 14px;
+    border-radius: 10px;
+    border-left: 3px solid var(--primary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* GAME RESULT */
+
+#result-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 25px;
+}
+
+.result-card {
+    text-align: center;
+}
+
+#result-title {
+    color: var(--primary);
+}
+
+#result-message {
+    color: var(--muted);
+    margin: 20px 0;
+    line-height: 1.6;
+}
+
+#final-score {
+    font-size: 46px;
+    color: var(--primary);
+    margin: 25px 0 10px;
+}
+
+#high-score {
+    color: var(--yellow);
+    margin-bottom: 25px;
+}
+
+#statistics-chart {
+    max-height: 230px;
+    margin-bottom: 25px;
+}
+
+.result-card button {
+    margin-top: 12px;
+}
+
+/* NOTIFICATION WINDOW */
+
+#game-modal {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    background: var(--panel);
+    color: white;
+    padding: 30px;
+    width: 90%;
+    max-width: 420px;
+    border: 1px solid #526552;
+    border-radius: 20px;
+    text-align: center;
+}
+
+#game-modal::backdrop {
+    background: #000b;
+    backdrop-filter: blur(5px);
+}
+
+#modal-title {
+    color: var(--primary);
+    margin-bottom: 15px;
+}
+
+#modal-message {
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 25px;
+}
+
+#modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* MOBILE RESPONSIVE DESIGN */
+
+@media (max-width: 600px) {
+
+    .game-logo {
+        letter-spacing: -3px;
+    }
+
+    .hero-icon {
+        font-size: 50px;
+    }
+
+    .dashboard {
+        gap: 6px;
+    }
+
+    .stat {
+        padding: 12px 4px;
+    }
+
+    .stat small {
+        font-size: 9px;
+        letter-spacing: 0;
+    }
+
+    .stat strong {
+        font-size: 17px;
+    }
+
+    .route-buttons {
+        gap: 6px;
+    }
+
+    .route-btn {
+        font-size: 12px;
+    }
+
+    #map {
+        height: 45vh;
+    }
+
+    #trip-progress {
+        width: 82%;
+    }
+
+    .game-header {
+        padding: 12px;
+    }
+
+    .request-card,
+    .result-card {
+        padding: 22px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
