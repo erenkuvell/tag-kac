@@ -2289,3 +2289,121 @@ console.log("TAG KAC! Stage 15 - Police image modal enabled.");
     };
 
 })();
+// ==========================================
+// STAGE 17 - CUSTOMER SELECTION
+// ==========================================
+
+(() => {
+
+    const previousPrepareMission = prepareMission;
+
+    const customers = [
+        {
+            customer: "Ahmet",
+            reward: 350,
+            time: 120,
+            rating: "4,9"
+        },
+        {
+            customer: "Elif",
+            reward: 300,
+            time: 150,
+            rating: "4,8"
+        }
+    ];
+
+    prepareMission = function(reset = true) {
+
+        previousPrepareMission(reset);
+
+        const accept = $("accept-btn");
+
+        const details = document.querySelector(
+            ".trip-details"
+        );
+
+        let panel = $("customer-options");
+
+        if (!panel) {
+
+            panel = document.createElement("div");
+            panel.id = "customer-options";
+
+            panel.style.display = "grid";
+            panel.style.gap = "15px";
+            panel.style.margin = "20px 0";
+
+            details.before(panel);
+        }
+
+        panel.replaceChildren();
+        panel.hidden = level !== 0;
+
+        details.hidden = false;
+        accept.disabled = false;
+
+        if (level !== 0) return;
+
+        $("customer-name").textContent =
+            "İki yeni müşteri seni bekliyor!";
+
+        details.hidden = true;
+        accept.disabled = true;
+
+        customers.forEach(customer => {
+
+            const button =
+                document.createElement("button");
+
+            button.className = "secondary-btn";
+
+            button.style.textAlign = "left";
+            button.style.lineHeight = "1.9";
+            button.style.whiteSpace = "pre-line";
+
+            button.textContent =
+                `👤 ${customer.customer} | ⭐ ${customer.rating}\n` +
+                `📍 Kızılay → Bahçelievler\n` +
+                `💰 ${customer.reward} TL\n` +
+                `⏱ ${customer.time} saniye\n` +
+                `MÜŞTERİYİ SEÇ`;
+
+            button.addEventListener("click", () => {
+
+                missions[0].customer =
+                    customer.customer;
+
+                missions[0].reward =
+                    customer.reward;
+
+                missions[0].time =
+                    customer.time;
+
+                $("customer-name").textContent =
+                    "Seçilen müşteri: " +
+                    customer.customer;
+
+                $("trip-reward").textContent =
+                    money(customer.reward);
+
+                panel.querySelectorAll("button")
+                    .forEach(b => {
+                        b.style.borderColor = "#405044";
+                    });
+
+                button.style.borderColor = "#a3ff12";
+
+                details.hidden = false;
+                accept.disabled = false;
+
+            });
+
+            panel.appendChild(button);
+
+        });
+
+    };
+
+})();
+
+console.log("Customer selection enabled.");
