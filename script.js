@@ -1702,3 +1702,346 @@ useHint = function() {
 $("hint-btn").addEventListener(
     "click",useHint
 );
+// ==========================================
+// STAGE 11 - SOUND EFFECTS
+// ==========================================
+
+let audioContext = null;
+
+function unlockAudio() {
+
+    if (!soundEnabled) return;
+
+    try {
+
+        const AudioClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+        if (!AudioClass) return;
+
+        if (!audioContext) {
+            audioContext = new AudioClass();
+        }
+
+        if (audioContext.state === "suspended") {
+            audioContext.resume().catch(() => {});
+        }
+
+    } catch (error) {
+        console.warn("Ses başlatılamadı.", error);
+    }
+}
+
+document.addEventListener(
+    "click",
+    unlockAudio,
+    true
+);
+
+function playTone(
+    frequency,
+    duration = 0.2,
+    delay = 0,
+    type = "sine",
+    volume = 0.07,
+    endFrequency = frequency
+) {
+
+    if (!soundEnabled || !audioContext) return;
+
+    if (audioContext.state !== "running") return;
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    const start = audioContext.currentTime + delay;
+
+    oscillator.type = type;
+
+    oscillator.frequency.setValueAtTime(
+        frequency, start
+    );
+
+    oscillator.frequency.linearRampToValueAtTime(
+        endFrequency, start + duration
+    );
+
+    gain.gain.setValueAtTime(0.001, start);
+
+    gain.gain.exponentialRampToValueAtTime(
+        volume, start + 0.015
+    );
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.001, start + duration
+    );
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start(start);
+    oscillator.stop(start + duration + 0.01);
+}
+
+
+// SOUND EFFECT LIBRARY
+
+function playEffect(name) {
+
+    if (!soundEnabled) return;
+
+    switch (name) {
+
+        case "request":
+
+            playTone(660, 0.15);
+            playTone(880, 0.20, 0.17);
+            playTone(1100, 0.25, 0.38);
+
+            break;
+
+
+        case "drive":
+
+            playTone(
+                75, 0.55, 0,
+                "sawtooth", 0.035, 150
+            );
+
+            break;
+
+
+        case "hint":
+
+            playTone(900, 0.15);
+            playTone(1300, 0.20, 0.15);
+
+            break;
+
+
+        case "police":
+
+            for (let i = 0; i < 4; i++) {
+
+                playTone(
+                    650, 0.25, i * 0.5,
+                    "triangle", 0.07, 1100
+                );
+
+                playTone(
+                    1100, 0.25, i * 0.5 + 0.25,
+                    "triangle", 0.07, 650
+                );
+            }
+
+            break;
+
+
+        case "money":
+
+            playTone(850, 0.15);
+            playTone(1100, 0.15, 0.15);
+            playTone(1500, 0.25, 0.30);
+
+            break;
+
+
+        case "caught":
+
+            playTone(330, 0.25, 0, "square", 0.04);
+            playTone(220, 0.30, 0.25, "square", 0.04);
+            playTone(110, 0.50, 0.55, "triangle");
+
+            break;
+
+
+        case "victory":
+
+            [523, 659, 784, 1047].forEach(
+                (frequency, i) => {
+
+                    playTone(
+                        frequency,
+                        0.35,
+                        i * 0.20,
+                        "triangle"
+                    );
+                }
+            );
+
+            break;
+    }
+}
+
+
+// PASSENGER REQUEST SOUND
+
+const originalPrepareMission11 = prepareMission;
+
+prepareMission = function(reset = true) {
+
+    originalPrepareMission11(reset);
+
+    playEffect("request");
+};
+
+
+// HINT SOUND
+
+$("hint-btn").addEventListener("click", () => {
+
+    playEffect("hint");
+});
+
+
+// POLICE SIREN
+
+const originalPoliceEncounter11 = policeEncounter;
+
+policeEncounter = function(route) {
+
+    playEffect("police");
+
+    originalPoliceEncounter11(route);
+};
+
+
+// MISSION SUCCESS SOUND
+
+const originalCompleteMission11 = completeMission;
+
+completeMission = function() {
+
+    if (level < missions.length - 1) {
+
+        playEffect("money");
+    }
+
+    originalCompleteMission11();
+};
+
+
+// ==========================================
+// IMPROVED RESULT SCREEN
+// ==========================================
+
+const originalFinishGame11 = finishGame;
+
+finishGame = function(success, message) {
+
+    const caught = !success &&
+        /taksi/i.test(message);
+
+    if (!$("result-image")) {
+
+        const img = document.createElement("img");
+
+        img.id = "result-image";
+        img.src = "assets/caught-taxi.png";
+        img.alt = "Yakalanma görseli";
+        img.hidden = true;
+
+        $("result-title").after(img);
+    }
+
+    originalFinishGame11(success, message);
+
+    $("result-image").hidden = !caught;
+
+    $("result-image").onerror = function() {
+
+        this.hidden = true;
+
+        console.warn(
+            "Yakalanma görseli bulunamadı."
+        );
+    };
+
+    if (success) {
+
+        playEffect("victory");
+
+    } else if (caught) {
+
+        $("result-title").textContent =
+            "YAKALANDIN!";
+
+        playEffect("caught");
+
+    } else {
+
+        $("result-title").textContent =
+            "OYUN BİTTİ!";
+
+        playEffect("caught");
+    }
+};
+
+
+// ==========================================
+// IMMEDIATE TAXI ENCOUNTER
+// ==========================================
+
+const originalChooseRoute11 = chooseRoute;
+
+chooseRoute = function(i) {
+
+    if (!active || busy || !routes[i]) return;
+
+    if (!timer.remaining()) {
+
+        finishGame(false, "Süren doldu!");
+
+        return;
+    }
+
+    const route = routes[i];
+
+    if (
+        route.obstacle === "taxi" ||
+        route.obstacle === "stand"
+    ) {
+
+        busy = true;
+
+        route.feature.setStyle(
+            lineStyle(colors[i], 8, 5)
+        );
+
+        revealObstacle(route);
+
+        stopMotion();
+
+        controls();
+
+        const message =
+            route.obstacle === "taxi"
+
+            ? "🚕 Taksiciye yakalandın!"
+
+            : "🚏 Taksi durağına yakalandın!";
+
+        $("customer-message").textContent =
+            message;
+
+        // Show obstacle briefly before result.
+
+        setTimeout(() => {
+
+            finishGame(false, message);
+
+        }, 450);
+
+        return;
+    }
+
+    playEffect("drive");
+
+    originalChooseRoute11(i);
+};
+
+
+console.log(
+    "TAG KAC! Stage 11 - Sound effects enabled."
+);
