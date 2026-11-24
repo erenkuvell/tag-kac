@@ -573,3 +573,12 @@ progress::-moz-progress-bar {
     border: 2px solid #405044;
     box-shadow: 0 10px 30px #0007;
 }
+#modal-image {
+    width: 100%;
+    max-width: 340px;
+    border-radius: 16px;
+    margin: 10px auto 18px;
+    display: block;
+    border: 2px solid #405044;
+    box-shadow: 0 10px 30px #0007;
+}
