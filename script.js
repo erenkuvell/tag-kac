@@ -2407,3 +2407,80 @@ console.log("TAG KAC! Stage 15 - Police image modal enabled.");
 })();
 
 console.log("Customer selection enabled.");
+// ==========================================
+// STAGE 18 - DRIVING BACKGROUND MUSIC
+// ==========================================
+
+(() => {
+
+    const drivingMusic = new Audio(
+        "./driving-music.mp3"
+    );
+
+    drivingMusic.loop = true;
+    drivingMusic.volume = 0.35;
+    drivingMusic.preload = "auto";
+
+    function playMusic() {
+
+        if (!soundEnabled) return;
+
+        drivingMusic.play().catch(error => {
+            console.warn("Müzik başlatılamadı.", error);
+        });
+    }
+
+    function pauseMusic() {
+
+        drivingMusic.pause();
+    }
+
+    // Play music while the vehicle moves
+
+    const previousAnimateRoute = animateRoute;
+
+    animateRoute = function(route, from, to, done) {
+
+        playMusic();
+
+        previousAnimateRoute(
+            route,
+            from,
+            to,
+            () => {
+
+                pauseMusic();
+
+                done();
+            }
+        );
+    };
+
+    // Stop music when the game stops
+
+    const previousStopMotion = stopMotion;
+
+    stopMotion = function() {
+
+        pauseMusic();
+
+        previousStopMotion();
+    };
+
+    // Sound ON / OFF button
+
+    $("sound-btn").addEventListener("click", () => {
+
+        if (!soundEnabled) {
+
+            pauseMusic();
+        }
+    });
+
+    // Stop music when leaving the page
+
+    window.addEventListener("pagehide", pauseMusic);
+
+    console.log("Driving music enabled.");
+
+})();
