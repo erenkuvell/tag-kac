@@ -2231,3 +2231,61 @@ policeEncounter = function(route) {
 };
 
 console.log("TAG KAC! Stage 15 - Police image modal enabled.");
+// STAGE 16 - POLICE IMAGE FIX
+
+(() => {
+
+    const previousModal = modal;
+
+    modal = function(title, message, actions) {
+
+        const isPolice =
+            /trafik kontrolü|polise yakalandın/i.test(title);
+
+        previousModal(
+            isPolice ? "🚨 POLİSE YAKALANDIN!" : title,
+            message,
+            actions
+        );
+
+        let img = document.getElementById("modal-image");
+
+        if (!img) {
+
+            img = document.createElement("img");
+            img.id = "modal-image";
+
+            document.getElementById("modal-message")
+                .before(img);
+        }
+
+        img.hidden = true;
+
+        if (isPolice) {
+
+            img.alt = "Trafik polisi görseli";
+
+            img.style.width = "100%";
+            img.style.maxHeight = "220px";
+            img.style.objectFit = "contain";
+            img.style.borderRadius = "12px";
+            img.style.margin = "10px auto 18px";
+
+            img.onload = () => {
+                img.hidden = false;
+            };
+
+            img.onerror = () => {
+                img.hidden = true;
+                console.error("Polis fotoğrafı yüklenemedi.");
+            };
+
+            img.src = "./caught-police.jpg";
+
+            if (img.complete && img.naturalWidth > 0) {
+                img.hidden = false;
+            }
+        }
+    };
+
+})();
