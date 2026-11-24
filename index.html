@@ -211,31 +211,38 @@
 
     <!-- GAME RESULT -->
 
-    <section id="result-screen" class="screen" hidden>
+   <section id="result-screen" class="screen" hidden>
 
-        <div class="result-card">
+    <div class="result-card">
 
-            <h1 id="result-title">Oyun Sonu</h1>
+        <h1 id="result-title">Oyun Sonu</h1>
 
-            <p id="result-message"></p>
+        <img
+            id="result-image"
+            src="assets/caught-taxi.png"
+            alt="Yakalanma görseli"
+            hidden
+        >
 
-            <h2 id="final-score">0 TL</h2>
+        <p id="result-message"></p>
 
-            <p id="high-score">En yüksek skor: 0 TL</p>
+        <h2 id="final-score">0 TL</h2>
 
-            <canvas id="statistics-chart"></canvas>
+        <p id="high-score">En yüksek skor: 0 TL</p>
 
-            <button id="restart-btn" class="primary-btn">
-                🔄 TEKRAR OYNA
-            </button>
+        <canvas id="statistics-chart"></canvas>
 
-            <button id="menu-btn" class="secondary-btn">
-                ANA MENÜ
-            </button>
+        <button id="restart-btn" class="primary-btn">
+            🔄 TEKRAR OYNA
+        </button>
 
-        </div>
+        <button id="menu-btn" class="secondary-btn">
+            ANA MENÜ
+        </button>
 
-    </section>
+    </div>
+
+</section>
 
 
     <!-- NOTIFICATION WINDOW -->
