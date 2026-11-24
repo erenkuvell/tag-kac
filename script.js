@@ -990,13 +990,13 @@ function finishGame(success, message) {
     }
 
     $("result-title").textContent = success
-
         ? "🏆 TAG EFSANESİ!"
-
-        : "Oyun Bitti!";
+        : "YAKALANDIN!";
 
     $("result-message").textContent =
-        message + ` | Tamamlanan görev: ${results.length}/3`;
+        success
+            ? message + ` | Tamamlanan görev: ${results.length}/3`
+            : message;
 
     $("final-score").textContent = money(balance);
 
@@ -1004,6 +1004,8 @@ function finishGame(success, message) {
         "En yüksek skor: " + money(record);
 
     $("statistics-chart").hidden = true;
+
+    $("result-image").hidden = success;
 
     showScreen("result-screen");
 }
@@ -1617,47 +1619,25 @@ chooseRoute = function(i) {
         lineStyle(colors[i],8,5)
     );
 
-    if (r.obstacle === "taxi" ||
-        r.obstacle === "stand") {
+   if (r.obstacle === "taxi" ||
+    r.obstacle === "stand") {
 
-        revealObstacle(r);
+    revealObstacle(r);
 
-        stopMotion();
+    stopMotion();
 
-        controls();
+    controls();
 
-        const icon = r.obstacle === "taxi"
-            ? "🚕"
-            : "🚏";
+    const msg = r.obstacle === "taxi"
+        ? "🚕 Taksiciye yakalandın! Yolculuk yarıda kaldı."
+        : "🚏 Taksi durağı engeline yakalandın! Yolculuk yarıda kaldı.";
 
-        const msg = r.obstacle === "taxi"
+    $("customer-message").textContent = msg;
 
-            ? "Taksi engeline denk geldin!"
+    finishGame(false, msg);
 
-            : "Taksi durağı engeline denk geldin!";
-
-        $("customer-message").textContent = msg;
-
-        modal(
-
-            icon + " OYUN BİTTİ!",
-
-            msg,
-
-            [
-                [
-                    "SONUCU GÖR",
-                    () => finishGame(false,icon+" "+msg)
-                ],
-                [
-                    "YENİDEN BAŞLAT",
-                    () => prepareMission(true)
-                ]
-            ]
-        );
-
-        return;
-    }
+    return;
+}
 
     if (r.obstacle === "police") {
 
