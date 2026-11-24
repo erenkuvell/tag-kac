@@ -1089,3 +1089,636 @@ $("game-modal").addEventListener(
 );
 
 controls();
+// ADIM 9 - REAL ROAD NETWORK
+
+let roadGraph = null;
+let roadLegs = [];
+
+const roadCache = new Map();
+const edgeKey = (a,b) => `${a}:${b}`;
+
+async function loadRoadGraph() {
+
+    if (roadGraph) return roadGraph;
+
+    const query = `[out:json][timeout:25];
+way["highway"~"^(primary|secondary|tertiary|unclassified|residential|living_street|primary_link|secondary_link|tertiary_link|trunk|trunk_link|service)$"](39.910,32.810,39.952,32.875);
+out geom;`;
+
+    const url =
+        "https://overpass-api.de/api/interpreter?data="
+        + encodeURIComponent(query);
+
+    const response = await fetch(url, {
+        signal: AbortSignal.timeout(35000)
+    });
+
+    if (!response.ok) {
+        throw new Error("OSM HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    const nodes = new Map();
+    const edges = new Map();
+    const incoming = new Set();
+
+    function addEdge(a,b) {
+
+        if (a === b) return;
+
+        const p = nodes.get(a);
+        const q = nodes.get(b);
+
+        const w = Math.hypot(
+            p[0]-q[0], p[1]-q[1]
+        );
+
+        if (!w) return;
+
+        if (!edges.has(a)) edges.set(a, []);
+
+        edges.get(a).push({to:b,w});
+        incoming.add(b);
+    }
+
+    for (const way of data.elements || []) {
+
+        if (!way.geometry || !way.nodes) continue;
+
+        const t = way.tags || {};
+
+        if (["private","no"].includes(
+            t.motor_vehicle || t.motorcar || t.access
+        )) continue;
+
+        if (["parking_aisle","driveway","drive-through"]
+            .includes(t.service)) continue;
+
+        way.nodes.forEach((id,i) => {
+
+            const p = way.geometry[i];
+
+            if (p) nodes.set(
+                id,
+                ol.proj.fromLonLat([p.lon,p.lat])
+            );
+        });
+
+        const reverse = t.oneway === "-1";
+
+        const forward =
+            ["yes","1","true"].includes(t.oneway) ||
+            (t.junction === "roundabout"
+                && t.oneway !== "no");
+
+        for (let i=1;i<way.nodes.length;i++) {
+
+            const a = way.nodes[i-1];
+            const b = way.nodes[i];
+
+            if (!nodes.has(a) || !nodes.has(b)) continue;
+
+            if (!reverse) addEdge(a,b);
+            if (!forward) addEdge(b,a);
+        }
+    }
+
+    if (!edges.size) {
+        throw new Error("Yol verisi boş");
+    }
+
+    roadGraph = {nodes,edges,incoming};
+
+    return roadGraph;
+}
+
+
+// SNAP COORDINATES TO ROAD NETWORK
+
+function nearestRoad(lonLat,graph,start) {
+
+    const p = ol.proj.fromLonLat(lonLat);
+
+    let best;
+    let d = Infinity;
+
+    for (const [id,q] of graph.nodes) {
+
+        if (start
+            ? !graph.edges.has(id)
+            : !graph.incoming.has(id)) continue;
+
+        const n = Math.hypot(
+            p[0]-q[0],p[1]-q[1]
+        );
+
+        if (n < d) {
+            d = n;
+            best = id;
+        }
+    }
+
+    return best;
+}
+
+
+// A* SHORTEST PATH ALGORITHM
+
+function roadPath(
+    g,a,b,
+    used = new Map(),
+    factor = 0,
+    blocked = ""
+) {
+
+    const goal = g.nodes.get(b);
+
+    const h = id => {
+
+        const p = g.nodes.get(id);
+
+        return Math.hypot(
+            p[0]-goal[0],p[1]-goal[1]
+        );
+    };
+
+    const best = new Map([[a,0]]);
+    const prev = new Map();
+
+    const queue = [[a,0,h(a)]];
+
+    while (queue.length) {
+
+        queue.sort((x,y) => y[2]-x[2]);
+
+        const [u,cost] = queue.pop();
+
+        if (cost !== best.get(u)) continue;
+
+        if (u === b) {
+
+            const path = [b];
+
+            while (path[0] !== a) {
+                path.unshift(prev.get(path[0]));
+            }
+
+            return path;
+        }
+
+        for (const e of g.edges.get(u) || []) {
+
+            const key = edgeKey(u,e.to);
+
+            if (key === blocked) continue;
+
+            const next = cost +
+                e.w * (1 + factor * (used.get(key)||0));
+
+            if (next >= (best.get(e.to) ?? Infinity)) {
+                continue;
+            }
+
+            best.set(e.to,next);
+            prev.set(e.to,u);
+
+            queue.push([
+                e.to,next,next+h(e.to)
+            ]);
+        }
+    }
+
+    return null;
+}
+
+
+function pathLength(g,path) {
+
+    let sum = 0;
+
+    for (let i=1;i<path.length;i++) {
+
+        const a = g.nodes.get(path[i-1]);
+        const b = g.nodes.get(path[i]);
+
+        sum += Math.hypot(
+            a[0]-b[0],a[1]-b[1]
+        );
+    }
+
+    return sum;
+}
+
+
+// THREE DIFFERENT ROAD ALTERNATIVES
+
+function threeRoadPaths(g,a,b) {
+
+    const first = roadPath(g,a,b);
+
+    if (!first || first.length < 2) return null;
+
+    const paths = [first];
+
+    const keys = new Set([first.join(",")]);
+
+    const used = new Map();
+
+    function mark(p) {
+
+        for (let i=1;i<p.length;i++) {
+
+            const k = edgeKey(p[i-1],p[i]);
+
+            used.set(k,(used.get(k)||0)+1);
+        }
+    }
+
+    function add(p) {
+
+        if (!p || keys.has(p.join(","))) return false;
+
+        keys.add(p.join(","));
+        paths.push(p);
+        mark(p);
+
+        return true;
+    }
+
+    mark(first);
+
+    for (const f of [0.6,1.5,3,6,12]) {
+
+        add(roadPath(g,a,b,used,f));
+
+        if (paths.length === 3) break;
+    }
+
+    if (paths.length < 3) {
+
+        const candidates = [];
+
+        for (const p of paths) {
+
+            const stride = Math.max(
+                1,Math.floor((p.length-1)/10)
+            );
+
+            for (let i=1;i<p.length;i+=stride) {
+
+                const q = roadPath(
+                    g,a,b,used,0,
+                    edgeKey(p[i-1],p[i])
+                );
+
+                if (q && !keys.has(q.join(","))) {
+                    candidates.push(q);
+                }
+            }
+        }
+
+        candidates.sort(
+            (x,y) => pathLength(g,x)-pathLength(g,y)
+        );
+
+        for (const p of candidates) {
+
+            add(p);
+
+            if (paths.length === 3) break;
+        }
+    }
+
+    return paths.length === 3 ? paths : null;
+}
+
+
+// PREPARE MISSION CHECKPOINTS
+
+function prepareRoadLegs(g,m) {
+
+    const a = nearestRoad(m.start,g,true);
+    const b = nearestRoad(m.end,g,false);
+
+    if (a === undefined || b === undefined) {
+        throw new Error("Başlangıç/varış bulunamadı");
+    }
+
+    const main = roadPath(g,a,b);
+
+    if (!main || main.length <= m.steps) {
+        throw new Error("Yeterli yol bağlantısı yok");
+    }
+
+    const indices = [0];
+    const cum = [0];
+
+    for (let i=1;i<main.length;i++) {
+
+        cum.push(
+            cum[i-1] +
+            pathLength(g,main.slice(i-1,i+1))
+        );
+    }
+
+    for (let i=1;i<m.steps;i++) {
+
+        const target =
+            cum[cum.length-1]*i/m.steps;
+
+        let j = cum.findIndex(x => x >= target);
+
+        j = Math.max(
+            indices[i-1]+1,
+            Math.min(
+                j,
+                main.length-1-(m.steps-i)
+            )
+        );
+
+        indices.push(j);
+    }
+
+    indices.push(main.length-1);
+
+    const legs = [];
+
+    for (let i=1;i<indices.length;i++) {
+
+        const paths = threeRoadPaths(
+            g,
+            main[indices[i-1]],
+            main[indices[i]]
+        );
+
+        if (!paths) {
+            throw new Error(
+                `${i}. etapta üç farklı bağlantı bulunamadı`
+            );
+        }
+
+        legs.push(
+            paths.map(
+                p => p.map(id => g.nodes.get(id))
+            )
+        );
+    }
+
+    return {
+        legs,
+        checkpoints: indices.map(
+            i => g.nodes.get(main[i])
+        )
+    };
+}
+
+
+// REPLACE SYNTHETIC ROUTES
+
+buildRoutes = function() {
+
+    const taxi = Math.floor(Math.random()*3);
+
+    const police =
+        level > 0 && step % 2 === 0
+
+        ? (taxi+1+Math.floor(Math.random()*2))%3
+
+        : -1;
+
+    return roadLegs[step].map((coords,i) => {
+
+        const geometry =
+            new ol.geom.LineString(coords);
+
+        const feature = new ol.Feature({
+            geometry,
+            routeIndex:i
+        });
+
+        feature.setStyle(lineStyle(colors[i]));
+
+        return {
+
+            feature,
+            geometry,
+
+            km: ol.sphere.getLength(geometry)/1000,
+
+            obstacle: i === taxi
+
+                ? (Math.random()<0.5
+                    ? "taxi"
+                    : "stand")
+
+                : i === police
+                    ? "police"
+                    : null,
+
+            marker:null
+        };
+    });
+};
+
+
+// LOAD REAL ROADS BEFORE STARTING TIMER
+
+$("accept-btn").removeEventListener(
+    "click",startMission
+);
+
+startMission = async function() {
+
+    const button = $("accept-btn");
+
+    button.disabled = true;
+
+    button.textContent = "YOLLAR HAZIRLANIYOR...";
+
+    try {
+
+        if (typeof ol === "undefined") {
+            throw new Error("OpenLayers yüklenmedi");
+        }
+
+        const graph = await loadRoadGraph();
+
+        if (!roadCache.has(level)) {
+
+            roadCache.set(
+                level,
+                prepareRoadLegs(graph,current())
+            );
+        }
+
+        const data = roadCache.get(level);
+
+        roadLegs = data.legs;
+        checkpoints = data.checkpoints;
+
+        showScreen("game-screen");
+
+        initializeMap();
+
+        active = true;
+
+        timer.start(current().time);
+
+        drawStep();
+
+    } catch(e) {
+
+        stopMotion();
+
+        showScreen("request-screen");
+
+        modal(
+            "Yol verisi hazırlanamadı",
+            e.message + " — Tekrar deneyebilirsin.",
+            [["TAMAM",()=>{}]]
+        );
+
+        console.error(e);
+
+    } finally {
+
+        button.disabled = false;
+
+        button.textContent = "TALEBİ KABUL ET";
+    }
+};
+
+$("accept-btn").addEventListener(
+    "click",startMission
+);
+
+
+// IMMEDIATE TAXI GAME OVER
+
+chooseRoute = function(i) {
+
+    if (!active || busy || !routes[i]) return;
+
+    if (!timer.remaining()) {
+
+        finishGame(false,"Süren doldu!");
+
+        return;
+    }
+
+    busy = true;
+
+    controls();
+
+    const r = routes[i];
+
+    r.feature.setStyle(
+        lineStyle(colors[i],8,5)
+    );
+
+    if (r.obstacle === "taxi" ||
+        r.obstacle === "stand") {
+
+        revealObstacle(r);
+
+        stopMotion();
+
+        controls();
+
+        const icon = r.obstacle === "taxi"
+            ? "🚕"
+            : "🚏";
+
+        const msg = r.obstacle === "taxi"
+
+            ? "Taksi engeline denk geldin!"
+
+            : "Taksi durağı engeline denk geldin!";
+
+        $("customer-message").textContent = msg;
+
+        modal(
+
+            icon + " OYUN BİTTİ!",
+
+            msg,
+
+            [
+                [
+                    "SONUCU GÖR",
+                    () => finishGame(false,icon+" "+msg)
+                ],
+                [
+                    "YENİDEN BAŞLAT",
+                    () => prepareMission(true)
+                ]
+            ]
+        );
+
+        return;
+    }
+
+    if (r.obstacle === "police") {
+
+        $("customer-message").textContent =
+            "Araç ilerliyor...";
+
+        animateRoute(r,0,0.55,()=>{
+
+            revealObstacle(r);
+
+            policeEncounter(r);
+        });
+
+        return;
+    }
+
+    $("customer-message").textContent =
+        "Araç ilerliyor...";
+
+    animateRoute(
+        r,0,1,
+        () => completeStep(r)
+    );
+};
+
+
+// IMPROVED HINT LABELS
+
+$("hint-btn").removeEventListener(
+    "click",useHint
+);
+
+const oldUseHint = useHint;
+
+useHint = function() {
+
+    if (!active || busy || revealed || hints===0) {
+        return;
+    }
+
+    oldUseHint();
+
+    const labels = {
+        taxi:"🚕 Taksi",
+        stand:"🚏 Taksi durağı",
+        police:"🚔 Polis"
+    };
+
+    $("customer-message").textContent =
+
+        "Oyun ipucu: " +
+
+        routes.map((r,i) =>
+
+            r.obstacle
+                ? `Rota ${i+1}: ${labels[r.obstacle]}`
+                : ""
+
+        ).filter(Boolean).join(" | ");
+};
+
+$("hint-btn").addEventListener(
+    "click",useHint
+);
