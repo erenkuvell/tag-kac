@@ -2043,3 +2043,101 @@ chooseRoute = function(i) {
 console.log(
     "TAG KAC! Stage 11 - Sound effects enabled."
 );
+// ==========================================
+// STAGE 13 - VERIFIED ROAD ROUTES
+// ==========================================
+
+let verifiedRouteData = null;
+
+missions[1].destination = "Anıtkabir çevresi";
+missions[2].pickup = "Anıtkabir çevresi";
+
+missions[1].hints = 2;
+
+roadCache.clear();
+
+loadRoadGraph = async function() {
+
+    if (verifiedRouteData) {
+        return verifiedRouteData;
+    }
+
+    const response = await fetch(
+        "./game-routes.json"
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            "Güzergâh dosyası bulunamadı."
+        );
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data.levels) ||
+        data.levels.length !== 3) {
+
+        throw new Error(
+            "Güzergâh verisi geçersiz."
+        );
+    }
+
+    verifiedRouteData = data;
+
+    return verifiedRouteData;
+};
+
+
+prepareRoadLegs = function(data, mission) {
+
+    const rawLegs = data.levels[level];
+
+    if (!rawLegs || !rawLegs.length) {
+        throw new Error(
+            "Seviye verisi bulunamadı."
+        );
+    }
+
+    const legs = rawLegs.map(leg =>
+
+        leg.map(route =>
+
+            route.map(coordinate =>
+                ol.proj.fromLonLat(coordinate)
+            )
+        )
+    );
+
+    mission.steps = legs.length;
+
+    mission.start = rawLegs[0][0][0];
+
+    const lastRoute =
+        rawLegs[rawLegs.length - 1][0];
+
+    mission.end =
+        lastRoute[lastRoute.length - 1];
+
+    const checkpoints = [
+        legs[0][0][0]
+    ];
+
+    legs.forEach(leg => {
+
+        const route = leg[0];
+
+        checkpoints.push(
+            route[route.length - 1]
+        );
+    });
+
+    return {
+        legs,
+        checkpoints
+    };
+};
+
+
+console.log(
+    "TAG KAC! - Verified routes enabled."
+);
