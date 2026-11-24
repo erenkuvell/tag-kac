@@ -1,44 +1,104 @@
-// TAG KAÇ! — GMT 458 Web GIS
-// Stage 7: Playable first mission
-
 "use strict";
 
 const $ = id => document.getElementById(id);
 const colors = ["#419cff", "#b48bff", "#79b925"];
+const money = n => n.toLocaleString("tr-TR") + " TL";
 
-const mission = {
-    customer: "Ahmet",
-    pickup: "Kızılay",
-    destination: "Bahçelievler",
-    start: [32.8541, 39.9208],
-    end: [32.8277, 39.9256],
-    reward: 350,
-    time: 120,
-    hints: 3,
-    steps: 4
-};
+// MISSION DATA
 
-let map, vectorSource, vehicle;
-let routes = [], checkpoints = [], travelled = [];
-let balance = 1000, hints = 3, step = 0;
-let active = false, busy = false;
-let revealed = false, animation = 0;
+const missions = [
+    {
+        customer: "Ahmet",
+        pickup: "Kızılay",
+        destination: "Bahçelievler",
+        start: [32.8541, 39.9208],
+        end: [32.8277, 39.9256],
+        reward: 350,
+        time: 120,
+        hints: 3,
+        steps: 4
+    },
+    {
+        customer: "Zeynep",
+        pickup: "Bahçelievler",
+        destination: "Anıtkabir",
+        start: [32.8277, 39.9256],
+        end: [32.8376, 39.9250],
+        reward: 650,
+        time: 150,
+        hints: 3,
+        steps: 5
+    },
+    {
+        customer: "Mehmet",
+        pickup: "Anıtkabir",
+        destination: "Ulus",
+        start: [32.8376, 39.9250],
+        end: [32.8549, 39.9417],
+        reward: 1000,
+        time: 180,
+        hints: 2,
+        steps: 6
+    }
+];
+
+const messages = [
+    "Abi, navigasyon açık değil mi?",
+    "Çok güzel Ankara manzarası!",
+    "Bu yol biraz uzun sanki...",
+    "Az kaldı mı?",
+    "Şimdilik her şey yolunda!"
+];
+
+const routeButtons = [
+    ...document.querySelectorAll(".route-btn")
+];
+
+let map, source, vehicle;
+
+let level = 0;
+let step = 0;
+let balance = 1000;
+let hints = 3;
+
+let active = false;
+let busy = false;
+let revealed = false;
 let soundEnabled = true;
 
-const routeButtons = [...document.querySelectorAll(".route-btn")];
-const money = value => value.toLocaleString("tr-TR") + " TL";
+let animation = 0;
+let routes = [];
+let checkpoints = [];
+let travelled = [];
+let results = [];
+
+let penalties = 0;
+let distance = 0;
+
+const current = () => missions[level];
+
+
+// SCREEN MANAGEMENT
 
 function showScreen(id) {
-    document.querySelectorAll(".screen").forEach(s => {
-        s.hidden = s.id !== id;
-    });
+    document.querySelectorAll(".screen")
+        .forEach(s => s.hidden = s.id !== id);
 }
+
 
 // COUNTDOWN TIMER - CLOSURE
 
 function createTimer() {
+
     let interval = null;
     let deadline = 0;
+
+    function remaining() {
+        return Math.max(
+            0,
+            Math.ceil((deadline - Date.now()) / 1000)
+        );
+    }
 
     function stop() {
         clearInterval(interval);
@@ -46,19 +106,19 @@ function createTimer() {
     }
 
     function render() {
-        const remaining = Math.max(
-            0,
-            Math.ceil((deadline - Date.now()) / 1000)
-        );
+
+        const r = remaining();
 
         $("timer").textContent =
-            String(Math.floor(remaining / 60)).padStart(2, "0")
+            String(Math.floor(r / 60)).padStart(2, "0")
             + ":" +
-            String(remaining % 60).padStart(2, "0");
+            String(r % 60).padStart(2, "0");
 
-        $("timer").classList.toggle("danger", remaining <= 15);
+        $("timer").classList.toggle(
+            "danger", r <= 15
+        );
 
-        if (!remaining && active) {
+        if (!r && active) {
             finishGame(false, "Süren doldu!");
         }
     }
@@ -70,50 +130,79 @@ function createTimer() {
         interval = setInterval(render, 200);
     }
 
-    return { start, stop };
+    return { start, stop, remaining };
 }
 
-const gameTimer = createTimer();
+const timer = createTimer();
 
-function resetMotion() {
+
+function closeModal() {
+    if ($("game-modal").open) {
+        $("game-modal").close();
+    }
+}
+
+function stopMotion() {
+
     cancelAnimationFrame(animation);
+
     animation = 0;
+
+    timer.stop();
+
     active = false;
     busy = false;
-    gameTimer.stop();
 }
+
 
 // PASSENGER REQUEST
 
-function prepareMission() {
-    resetMotion();
+function prepareMission(reset = true) {
 
-    balance = 1000;
-    hints = mission.hints;
+    closeModal();
+    stopMotion();
+
+    if (reset) {
+        level = 0;
+        balance = 1000;
+        results = [];
+    }
+
+    const m = current();
+
     step = 0;
+    hints = m.hints;
     travelled = [];
+    penalties = 0;
+    distance = 0;
 
     $("customer-name").textContent =
-        "Müşteri: " + mission.customer;
+        `Seviye ${level + 1}/3 · Müşteri: ${m.customer}`;
 
-    $("pickup-location").textContent = mission.pickup;
-    $("destination-location").textContent = mission.destination;
-    $("trip-reward").textContent = money(mission.reward);
+    $("pickup-location").textContent = m.pickup;
+
+    $("destination-location").textContent =
+        m.destination;
+
+    $("trip-reward").textContent = money(m.reward);
 
     showScreen("request-screen");
 }
 
-// MAP INITIALIZATION
+
+// OPENLAYERS MAP
 
 function initializeMap() {
+
     if (map) {
         map.updateSize();
         return;
     }
 
-    vectorSource = new ol.source.Vector();
+    source = new ol.source.Vector();
 
     map = new ol.Map({
+
         target: "map",
 
         layers: [
@@ -121,96 +210,115 @@ function initializeMap() {
                 source: new ol.source.OSM()
             }),
 
-            new ol.layer.Vector({
-                source: vectorSource
-            })
+            new ol.layer.Vector({ source })
         ],
 
         view: new ol.View({
-            center: ol.proj.fromLonLat(mission.start),
+            center: ol.proj.fromLonLat(current().start),
             zoom: 14
         })
     });
 
     map.addControl(new ol.control.ScaleLine());
 
-    map.on("singleclick", event => {
+    map.on("singleclick", e => {
+
         if (!active || busy) return;
 
         const hit = map.forEachFeatureAtPixel(
-            event.pixel,
 
-            feature => Number.isInteger(
-                feature.get("routeIndex")
-            ) ? feature : undefined,
+            e.pixel,
+
+            f => Number.isInteger(
+                f.get("routeIndex")
+            ) ? f : undefined,
 
             { hitTolerance: 7 }
         );
 
         if (hit) {
+
             chooseRoute(hit.get("routeIndex"));
-            return;
+
+        } else {
+
+            const [lon, lat] =
+                ol.proj.toLonLat(e.coordinate);
+
+            $("customer-message").textContent =
+                `Koordinat: ${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E`;
         }
-
-        const [lon, lat] = ol.proj.toLonLat(event.coordinate);
-
-        $("customer-message").textContent =
-            `Koordinat: ${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E`;
     });
 }
 
-// POINT GEOMETRIES
 
-function pointFeature(coordinate, label, color, icon = "", z = 10) {
+// POINT GEOMETRY
 
-    const feature = new ol.Feature(
+function point(
+    coordinate,
+    label,
+    color,
+    icon = "",
+    z = 10
+) {
+
+    const f = new ol.Feature(
         new ol.geom.Point(coordinate)
     );
 
-    feature.setStyle(new ol.style.Style({
+    f.setStyle(new ol.style.Style({
 
         zIndex: z,
 
         image: new ol.style.Circle({
+
             radius: icon ? 18 : 10,
 
             fill: new ol.style.Fill({ color }),
 
             stroke: new ol.style.Stroke({
-                color: "#ffffff",
+                color: "#fff",
                 width: 2
             })
         }),
 
         text: new ol.style.Text({
+
             text: icon || label,
 
-            font: icon ? "22px Arial" : "bold 13px Arial",
+            font: icon
+                ? "22px Arial"
+                : "bold 13px Arial",
 
             offsetY: icon ? 0 : -22,
 
             fill: new ol.style.Fill({
-                color: "#ffffff"
+                color: "#fff"
             }),
 
-            stroke: icon ? undefined : new ol.style.Stroke({
-                color: "#101512",
-                width: 4
-            })
+            stroke: icon
+                ? undefined
+                : new ol.style.Stroke({
+                    color: "#101512",
+                    width: 4
+                })
         })
     }));
 
-    vectorSource.addFeature(feature);
+    source.addFeature(f);
 
-    return feature;
+    return f;
 }
 
-// ROUTE STYLING
+
+// LINE GEOMETRY STYLING
 
 function lineStyle(color, width = 5, z = 2) {
 
     return [
+
         new ol.style.Style({
+
             zIndex: z,
 
             stroke: new ol.style.Stroke({
@@ -220,6 +328,7 @@ function lineStyle(color, width = 5, z = 2) {
         }),
 
         new ol.style.Style({
+
             zIndex: z + 1,
 
             stroke: new ol.style.Stroke({
@@ -230,51 +339,68 @@ function lineStyle(color, width = 5, z = 2) {
     ];
 }
 
-// FICTIONAL GAME NETWORK
-// Not real street navigation or obstacle locations.
+
+// CHECKPOINT GENERATION
 
 function buildCheckpoints() {
 
-    const a = ol.proj.fromLonLat(mission.start);
-    const b = ol.proj.fromLonLat(mission.end);
+    const m = current();
+
+    const a = ol.proj.fromLonLat(m.start);
+    const b = ol.proj.fromLonLat(m.end);
 
     return Array.from(
-        { length: mission.steps + 1 },
+
+        { length: m.steps + 1 },
 
         (_, i) => [
-            a[0] + (b[0] - a[0]) * i / mission.steps,
-            a[1] + (b[1] - a[1]) * i / mission.steps
+
+            a[0] + (b[0] - a[0]) * i / m.steps,
+
+            a[1] + (b[1] - a[1]) * i / m.steps
+
         ]
     );
 }
+
+
+// FICTIONAL GAME ROUTES
+// No real obstacle or police location data.
 
 function buildRoutes(a, b) {
 
     const dx = b[0] - a[0];
     const dy = b[1] - a[1];
 
-    const length = Math.hypot(dx, dy);
+    const len = Math.hypot(dx, dy);
 
-    const nx = -dy / length;
-    const ny = dx / length;
-
-    const at = (t, offset) => [
-        a[0] + dx * t + nx * offset,
-        a[1] + dy * t + ny * offset
+    const at = (t, o) => [
+        a[0] + dx * t - dy / len * o,
+        a[1] + dy * t + dx / len * o
     ];
 
-    const obstacleIndex = Math.floor(Math.random() * 3);
+    const taxi = Math.floor(Math.random() * 3);
+
+    const police =
+        level > 0 &&
+        (step % 2 === 1 || (level === 2 && step === 4))
+
+        ? (taxi + 1 + Math.floor(Math.random() * 2)) % 3
+
+        : -1;
 
     return [-0.34, 0, 0.47].map((offset, i) => {
 
-        const coords = [
-            a,
-            at(0.25, length * offset),
-            at(0.75, length * offset),
-            b
-        ];
+        const geometry = new ol.geom.LineString([
 
-        const geometry = new ol.geom.LineString(coords);
+            a,
+
+            at(0.25, len * offset),
+
+            at(0.75, len * offset),
+
+            b
+        ]);
 
         const feature = new ol.Feature({
             geometry,
@@ -284,139 +410,182 @@ function buildRoutes(a, b) {
         feature.setStyle(lineStyle(colors[i]));
 
         return {
+
             feature,
+
             geometry,
 
             km: ol.sphere.getLength(geometry) / 1000,
 
-            obstacle: i === obstacleIndex
+            obstacle: i === taxi
+
                 ? (Math.random() < 0.5 ? "taxi" : "stand")
-                : null
+
+                : i === police
+                    ? "police"
+                    : null,
+
+            marker: null
         };
     });
 }
 
+
 // DASHBOARD
 
-function updateDashboard() {
+function dashboard() {
 
     $("balance").textContent = money(balance);
-    $("level").textContent = "1/3";
+
+    $("level").textContent = `${level + 1}/3`;
+
     $("hint-count").textContent = hints;
 
-    const percent = Math.round(
-        100 * step / mission.steps
+    const p = Math.round(
+        100 * step / current().steps
     );
 
-    $("trip-progress").value = percent;
-    $("progress-text").textContent = "%" + percent;
+    $("trip-progress").value = p;
+
+    $("progress-text").textContent = "%" + p;
 }
 
-function updateControls() {
 
-    routeButtons.forEach(button => {
-        button.disabled = !active || busy;
-    });
+function controls() {
+
+    routeButtons.forEach(
+        b => b.disabled = !active || busy
+    );
 
     $("hint-btn").disabled =
         !active || busy || revealed || hints === 0;
 }
 
-// DRAW ROUTES
+
+// DISPLAY ROUTES
 
 function drawStep() {
 
-    vectorSource.clear();
+    source.clear();
 
     revealed = false;
     busy = false;
 
     travelled.forEach(coords => {
 
-        const feature = new ol.Feature(
+        const f = new ol.Feature(
             new ol.geom.LineString(coords)
         );
 
-        feature.setStyle(lineStyle("#75847b", 3, 0));
+        f.setStyle(
+            lineStyle("#75847b", 3, 0)
+        );
 
-        vectorSource.addFeature(feature);
+        source.addFeature(f);
     });
 
-    const a = checkpoints[step];
-    const b = checkpoints[step + 1];
+    routes = buildRoutes(
+        checkpoints[step],
+        checkpoints[step + 1]
+    );
 
-    routes = buildRoutes(a, b);
+    const extent = ol.extent.createEmpty();
 
-    routes.forEach((route, i) => {
+    routes.forEach((r, i) => {
 
-        vectorSource.addFeature(route.feature);
+        source.addFeature(r.feature);
+
+        ol.extent.extend(
+            extent,
+            r.geometry.getExtent()
+        );
 
         $("distance-" + (i + 1)).textContent =
-            route.km.toFixed(2) + " km";
+            r.km.toFixed(2) + " km";
     });
 
+    const m = current();
+
     if (step > 0) {
-        pointFeature(
+
+        point(
             checkpoints[0],
-            "A - Kızılay",
+            "A - " + m.pickup,
             "#32bd72"
         );
     }
 
-    pointFeature(
-        checkpoints[mission.steps],
-        "B - Bahçelievler",
+    point(
+        checkpoints[m.steps],
+        "B - " + m.destination,
         "#ef4444"
     );
 
-    if (step + 1 < mission.steps) {
-        pointFeature(
-            b,
+    if (step + 1 < m.steps) {
+
+        point(
+            checkpoints[step + 1],
             "Ara nokta " + (step + 1),
             "#586671"
         );
     }
 
-    vehicle = pointFeature(
-        a, "", "#17231c", "🚗", 30
+    vehicle = point(
+        checkpoints[step],
+        "",
+        "#17231c",
+        "🚗",
+        30
     );
 
-    updateDashboard();
-    updateControls();
+    dashboard();
+    controls();
 
     $("customer-message").textContent =
-        `Müşteri: Hadi gidelim! | Etap ${step + 1}/${mission.steps} | Kurgusal oyun rotaları`;
-
-    const extent = ol.extent.createEmpty();
-
-    routes.forEach(route => {
-        ol.extent.extend(
-            extent,
-            route.geometry.getExtent()
-        );
-    });
+        `${m.customer}: ${messages[step % messages.length]} | Etap ${step + 1}/${m.steps} · Kurgusal rota`;
 
     map.updateSize();
 
     map.getView().fit(extent, {
-        padding: [55, 55, 55, 55],
+        padding: [50, 50, 50, 50],
         maxZoom: 16,
         duration: 350
     });
 }
 
-// OBSTACLES AND HINTS
 
-function revealObstacle(route) {
+// OBSTACLES
 
-    pointFeature(
-        route.geometry.getCoordinateAt(0.55),
+function revealObstacle(r) {
+
+    if (!r.obstacle || r.marker) return;
+
+    const icon = r.obstacle === "police"
+
+        ? "🚔"
+
+        : r.obstacle === "stand"
+            ? "🚏"
+            : "🚕";
+
+    r.marker = point(
+
+        r.geometry.getCoordinateAt(0.55),
+
         "",
-        "#e8b92c",
-        route.obstacle === "stand" ? "🚏" : "🚕",
+
+        r.obstacle === "police"
+            ? "#419cff"
+            : "#e8b92c",
+
+        icon,
+
         20
     );
 }
+
+
+// HINT SYSTEM
 
 function useHint() {
 
@@ -425,104 +594,289 @@ function useHint() {
     }
 
     hints--;
+
     revealed = true;
 
-    routes.filter(route => route.obstacle)
-        .forEach(revealObstacle);
+    routes.forEach(revealObstacle);
 
-    updateDashboard();
-    updateControls();
+    dashboard();
+    controls();
 
     $("customer-message").textContent =
-        "İpucu: 🚕 Taksi / 🚏 Taksi durağı işareti görünen rota oyun engeli içeriyor.";
+        "İpucu: İşaretli rotalar kurgusal oyun engeli içeriyor.";
 }
+
 
 // VEHICLE ANIMATION
 
-function chooseRoute(index) {
-
-    if (!active || busy || !routes[index]) return;
-
-    busy = true;
-    updateControls();
-
-    const route = routes[index];
-
-    route.feature.setStyle(
-        lineStyle(colors[index], 8, 5)
-    );
-
-    if (route.obstacle && !revealed) {
-        revealObstacle(route);
-    }
-
-    const target = route.obstacle ? 0.55 : 1;
+function animateRoute(r, from, to, done) {
 
     const duration = Math.min(
-        6500,
-        3000 + route.km * 2000
-    ) * target;
+        9500,
+        5500 + r.km * 2000
+    ) * (to - from);
 
     const start = performance.now();
-
-    $("customer-message").textContent =
-        "Araç ilerliyor...";
 
     function move(now) {
 
         if (!active) return;
 
-        const fraction = Math.min(
+        if (timer.remaining() === 0) {
+            finishGame(false, "Süren doldu!");
+            return;
+        }
+
+        const f = Math.min(
             1,
             (now - start) / duration
         );
 
         vehicle.getGeometry().setCoordinates(
-            route.geometry.getCoordinateAt(
-                fraction * target
+
+            r.geometry.getCoordinateAt(
+                from + (to - from) * f
             )
         );
 
-        if (fraction < 1) {
+        if (f < 1) {
+
             animation = requestAnimationFrame(move);
-            return;
-        }
-
-        if (route.obstacle) {
-
-            finishGame(
-                false,
-                route.obstacle === "stand"
-                    ? "Taksi durağına yakalandın!"
-                    : "Taksiciye yakalandın!"
-            );
-
-            return;
-        }
-
-        travelled.push(
-            route.geometry.getCoordinates()
-        );
-
-        step++;
-        updateDashboard();
-
-        if (step === mission.steps) {
-
-            balance += mission.reward;
-
-            finishGame(
-                true,
-                "Müşteriyi ulaştırdın! +350 TL"
-            );
 
         } else {
-            drawStep();
+
+            done();
         }
     }
 
     animation = requestAnimationFrame(move);
 }
+
+
+// ROUTE SELECTION
+
+function chooseRoute(i) {
+
+    if (!active || busy || !routes[i]) return;
+
+    if (timer.remaining() === 0) {
+        finishGame(false, "Süren doldu!");
+        return;
+    }
+
+    busy = true;
+
+    controls();
+
+    const r = routes[i];
+
+    r.feature.setStyle(
+        lineStyle(colors[i], 8, 5)
+    );
+
+    $("customer-message").textContent =
+        "Araç ilerliyor...";
+
+    animateRoute(
+
+        r,
+
+        0,
+
+        r.obstacle ? 0.55 : 1,
+
+        () => {
+
+            if (!r.obstacle) {
+
+                completeStep(r);
+
+                return;
+            }
+
+            revealObstacle(r);
+
+            if (r.obstacle === "police") {
+
+                policeEncounter(r);
+
+            } else {
+
+                finishGame(
+
+                    false,
+
+                    r.obstacle === "stand"
+
+                    ? "Taksi durağı engeline denk geldin!"
+
+                    : "Taksi engeline denk geldin!"
+                );
+            }
+        }
+    );
+}
+
+
+// SIMULATED POLICE ENCOUNTER
+
+function policeEncounter(r) {
+
+    const actions = [];
+
+    if (balance >= 500) {
+
+        actions.push([
+
+            "500 TL ÖDE VE DEVAM ET",
+
+            () => {
+
+                if (!active || timer.remaining() === 0) {
+                    finishGame(false, "Süren doldu!");
+                    return;
+                }
+
+                balance -= 500;
+
+                penalties++;
+
+                dashboard();
+
+                animateRoute(
+                    r,
+                    0.55,
+                    1,
+                    () => completeStep(r)
+                );
+            }
+        ]);
+    }
+
+    actions.push([
+
+        "YENİDEN BAŞLAT",
+
+        () => prepareMission(true)
+    ]);
+
+    modal(
+
+        "🚔 Trafik kontrolü",
+
+        balance >= 500
+
+            ? "Kurgusal oyun cezası: 500 TL. Süre devam ediyor."
+
+            : "Sanal bakiyen yetersiz. Oyunu yeniden başlatmalısın.",
+
+        actions
+    );
+
+    if (balance < 500) {
+
+        timer.stop();
+
+        active = false;
+
+        controls();
+    }
+}
+
+
+// COMPLETE CHECKPOINT
+
+function completeStep(r) {
+
+    travelled.push(
+        r.geometry.getCoordinates()
+    );
+
+    distance += r.km;
+
+    step++;
+
+    dashboard();
+
+    if (step === current().steps) {
+
+        completeMission();
+
+    } else {
+
+        drawStep();
+    }
+}
+
+
+// MISSION COMPLETION AND RATING
+
+function completeMission() {
+
+    const m = current();
+
+    const remaining = timer.remaining();
+
+    stopMotion();
+
+    controls();
+
+    balance += m.reward;
+
+    dashboard();
+
+    const stars = Math.max(
+
+        1,
+
+        Math.min(
+            5,
+            5 - penalties -
+            (remaining < m.time / 4 ? 1 : 0)
+        )
+    );
+
+    results.push({
+
+        reward: m.reward,
+
+        fines: penalties * 500,
+
+        distance,
+
+        stars
+    });
+
+    const summary =
+        `${m.customer} varış noktasında! +${money(m.reward)} · ${"★".repeat(stars)}${"☆".repeat(5 - stars)} · Bakiye: ${money(balance)}`;
+
+    if (level === missions.length - 1) {
+
+        finishGame(true, summary);
+
+    } else {
+
+        modal(
+
+            "Görev tamamlandı!",
+
+            summary,
+
+            [[
+
+                "SONRAKİ MÜŞTERİ",
+
+                () => {
+
+                    level++;
+
+                    prepareMission(false);
+                }
+            ]]
+        );
+    }
+}
+
 
 // START MISSION
 
@@ -530,10 +884,13 @@ function startMission() {
 
     if (typeof ol === "undefined") {
 
-        showModal(
+        modal(
+
             "Harita yüklenemedi",
+
             "OpenLayers bağlantısını kontrol et.",
-            "TAMAM"
+
+            [["TAMAM", () => {}]]
         );
 
         return;
@@ -547,58 +904,74 @@ function startMission() {
 
     active = true;
 
-    drawStep();
+    timer.start(current().time);
 
-    gameTimer.start(mission.time);
+    drawStep();
 }
 
-// MODAL
 
-function showModal(title, message, buttonText) {
+// MODAL WINDOW
+
+function modal(title, message, actions) {
+
+    closeModal();
 
     $("modal-title").textContent = title;
+
     $("modal-message").textContent = message;
 
-    const button = document.createElement("button");
+    $("modal-actions").replaceChildren();
 
-    button.className = "primary-btn";
-    button.textContent = buttonText;
+    actions.forEach(([label, fn], i) => {
 
-    button.addEventListener("click", () => {
-        $("game-modal").close();
+        const b = document.createElement("button");
+
+        b.className = i === 0
+            ? "primary-btn"
+            : "secondary-btn";
+
+        b.textContent = label;
+
+        b.addEventListener("click", () => {
+
+            closeModal();
+
+            fn();
+        });
+
+        $("modal-actions").appendChild(b);
     });
-
-    $("modal-actions").replaceChildren(button);
 
     $("game-modal").showModal();
 }
+
 
 // HIGH SCORE
 
 function readRecord() {
 
     try {
+
         return Number(
-            localStorage.getItem("tagStage1Record")
+            localStorage.getItem("tagFullGameRecord")
         ) || 0;
 
     } catch {
+
         return 0;
     }
 }
 
-// GAME RESULT
+
+// GAME OVER
 
 function finishGame(success, message) {
 
-    resetMotion();
-    updateControls();
+    closeModal();
 
-    $("result-title").textContent =
-        success ? "1. Görev Tamamlandı!" : "Oyun Bitti!";
+    stopMotion();
 
-    $("result-message").textContent = message;
-    $("final-score").textContent = money(balance);
+    controls();
 
     let record = readRecord();
 
@@ -607,37 +980,53 @@ function finishGame(success, message) {
         record = balance;
 
         try {
+
             localStorage.setItem(
-                "tagStage1Record",
+                "tagFullGameRecord",
                 String(record)
             );
-        } catch {
-            // Storage unavailable
-        }
+
+        } catch {}
     }
 
+    $("result-title").textContent = success
+
+        ? "🏆 TAG EFSANESİ!"
+
+        : "Oyun Bitti!";
+
+    $("result-message").textContent =
+        message + ` | Tamamlanan görev: ${results.length}/3`;
+
+    $("final-score").textContent = money(balance);
+
     $("high-score").textContent =
-        "1. görev rekoru: " + money(record);
+        "En yüksek skor: " + money(record);
 
     $("statistics-chart").hidden = true;
 
     showScreen("result-screen");
 }
 
+
 // EVENT HANDLERS
 
 $("start-btn").addEventListener(
-    "click", prepareMission
+
+    "click",
+
+    () => prepareMission(true)
 );
 
 $("accept-btn").addEventListener(
     "click", startMission
 );
 
-routeButtons.forEach(button => {
+routeButtons.forEach(b => {
 
-    button.addEventListener("click", () => {
-        chooseRoute(Number(button.dataset.route));
+    b.addEventListener("click", () => {
+
+        chooseRoute(Number(b.dataset.route));
     });
 });
 
@@ -647,19 +1036,25 @@ $("hint-btn").addEventListener(
 
 $("help-btn").addEventListener("click", () => {
 
-    showModal(
+    modal(
+
         "Nasıl Oynanır?",
-        "Talebi kabul et, üç rotadan birini seç ve dört etabı tamamla. Üç ipucu hakkın var. Süre dolarsa veya taksi engeline denk gelirsen oyun biter. Tüm rotalar ve engeller kurgusaldır.",
-        "ANLADIM"
+
+        "Üç müşteri görevini süre dolmadan tamamla. Her etapta üç rotadan birini seç. İpuçları kurgusal engelleri gösterir. Taksi engeli oyunu bitirir; polis engelinde sanal ceza ödeyebilirsin.",
+
+        [["ANLADIM", () => {}]]
     );
 });
 
 $("record-btn").addEventListener("click", () => {
 
-    showModal(
-        "1. Görev Rekoru",
+    modal(
+
+        "En Yüksek Skor",
+
         money(readRecord()),
-        "TAMAM"
+
+        [["TAMAM", () => {}]]
     );
 });
 
@@ -667,23 +1062,30 @@ $("sound-btn").addEventListener("click", () => {
 
     soundEnabled = !soundEnabled;
 
-    $("sound-btn").textContent =
-        soundEnabled
-            ? "🔊 SES: AÇIK"
-            : "🔇 SES: KAPALI";
+    $("sound-btn").textContent = soundEnabled
+
+        ? "🔊 SES: AÇIK"
+
+        : "🔇 SES: KAPALI";
 });
 
 $("restart-btn").addEventListener(
-    "click", prepareMission
+
+    "click",
+
+    () => prepareMission(true)
 );
 
 $("menu-btn").addEventListener("click", () => {
 
-    resetMotion();
+    stopMotion();
 
     showScreen("main-menu");
 });
 
-updateControls();
+$("game-modal").addEventListener(
+    "cancel",
+    e => e.preventDefault()
+);
 
-console.log("TAG KAC! Stage 7 initialized.");
+controls();
